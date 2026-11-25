@@ -12,8 +12,9 @@ async function supabaseRequest(path, options = {}) {
     ...options,
     headers: { ...supabaseHeaders(options.prefer), ...options.headers }
   });
-  if (!result.ok) throw new Error(`Supabase ${result.status}: ${await result.text()}`);
-  return result.status === 204 ? null : result.json();
+  const body = await result.text();
+  if (!result.ok) throw new Error(`Supabase ${result.status}: ${body}`);
+  return body ? JSON.parse(body) : null;
 }
 
 function revision(data) {
@@ -71,6 +72,6 @@ module.exports = async function handler(request, response) {
     return response.status(200).json({ ok: true });
   } catch (error) {
     console.error(error);
-    return response.status(500).json({ error: 'Não foi possível acessar o Supabase' });
+    return response.status(500).json({ error: 'Não foi possível acessar o Supabase', detail: error.message });
   }
 };
