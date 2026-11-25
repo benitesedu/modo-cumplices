@@ -2,6 +2,7 @@
   "version": 2,
   "routes": [
     { "src": "/dados.json", "dest": "/api/dados" },
+    { "src": "/favicon.png", "dest": "/favicon.png" },
     { "src": "/(.*\\.(js|css|webp|png|jpg|jpeg|ico|svg))", "dest": "/dist/$1" },
     { "src": "/(.*)", "dest": "/dist/index.html" }
   ]
