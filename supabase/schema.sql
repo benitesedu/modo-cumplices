@@ -45,3 +45,7 @@ for each row execute function public.atualizar_atualizado_em();
 -- A API da Vercel usa a service role key no servidor. O acesso público direto fica bloqueado.
 alter table public.dias enable row level security;
 alter table public.votos enable row level security;
+
+grant usage on schema public to service_role;
+grant select, insert, update, delete on public.dias to service_role;
+grant select, insert, update, delete on public.votos to service_role;
