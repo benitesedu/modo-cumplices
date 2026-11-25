@@ -14,11 +14,13 @@ const fullDateLabel=key=>dateFromKey(key).toLocaleDateString('pt-BR',{weekday:'l
 const escapeText=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function initialize(){
  const response=await fetch('/dados.json',{cache:'no-store'});if(!response.ok)throw new Error('Falha ao carregar dados.json');
+ const source=response.headers.get('X-Data-Source');setDataStatus(source==='supabase'?'Supabase conectado':source==='github-fallback'?'Supabase fora · fallback ativo':'Supabase não configurado · JSON local');
  const db=await response.json();revision=response.headers.get('ETag');
   for(const [date,rec] of Object.entries(db.registros))days[date]={tags:rec.marcacoes.map(k=>kinds.indexOf(k)),who:rec.envolvidosNaBriga||'Os dois',note:rec.observacao,votes:members.map(id=>rec.votos[id]?{score:rec.votos[id].estrelas,note:rec.votos[id].comentario}:null)};
   try{Object.assign(days,JSON.parse(localStorage.getItem(localRecordsKey)||'{}'))}catch{}
  render();
 }
+function setDataStatus(message){const status=el('dataStatus');if(status){status.hidden=false;status.textContent=message;status.dataset.state=message.includes('conectado')?'ok':message.includes('fora')?'warning':'offline'}}
 const done=d=>days[d]?.votes.every(Boolean);
 async function persist(record){
  if(saving)return;saving=true;const selected=day;const data={marcacoes:record.tags.map(i=>kinds[i]),envolvidosNaBriga:record.tags.includes(0)?record.who:null,observacao:record.note,votos:Object.fromEntries(members.map((id,i)=>[id,record.votes[i]?{estrelas:record.votes[i].score,comentario:record.votes[i].note}:null]))};
