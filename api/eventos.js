@@ -51,6 +51,12 @@ module.exports = async function handler(req, response) {
       response.setHeader('X-Data-Source', 'supabase');
       return response.status(200).json(result);
     }
+    if (req.method === 'DELETE') {
+      const id = new URL(req.url, 'http://localhost').searchParams.get('id');
+      if (!id || !/^\d+$/.test(id)) return response.status(400).json({ error: 'Evento inválido' });
+      await request(`eventos_especiais?id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' });
+      return response.status(204).end();
+    }
     if (req.method !== 'POST') return response.status(405).json({ error: 'Método não permitido' });
     const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     validateEvent(event);
