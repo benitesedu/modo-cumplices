@@ -107,6 +107,14 @@ module.exports = async function handler(request, response) {
     return response.status(200).json({ ok: true });
   } catch (error) {
     console.error(error);
-    return response.status(500).json({ error: 'Não foi possível atualizar a base de dados' });
+    if (request.method === 'GET' && supabaseUrl && supabaseKey) {
+      try {
+        const fallback = await getGithubData();
+        response.setHeader('ETag', `"${fallback.revision}"`);
+        response.setHeader('X-Data-Source', 'github-fallback');
+        return response.status(200).json(fallback.data);
+      } catch {}
+    }
+    return response.status(500).json({ error: 'Não foi possível acessar a base de dados', detail: error.message });
   }
 };
