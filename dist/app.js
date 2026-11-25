@@ -1,4 +1,4 @@
-const people=['Eduardo','Jéssica'],photos=['edu.webp','jess.webp'],tags=['Teve briga','Dia feliz','Dia quente'],names=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'],key='dois-em-jogo.demo.v1';
+const people=['Eduardo','Jéssica'],photos=['edu.webp','jess.webp'],tags=['Teve briga','Dia feliz','Dia quente'],names=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'],key='dois-em-jogo.demo.v1',localRecordsKey='modo-cumplice-local-records';
 const empty=()=>({tags:[],who:'Os dois',note:'',votes:[null,null]});
 const members=['eduardo','jessica'],kinds=['briga','feliz','quente'],ms=86400000;
 let days={},day,todayKey,draft,person,rating,revision,saving=false,dragging=false,dragMoved=false,dragStart=0,scrollStart=0;
@@ -15,13 +15,14 @@ const escapeText=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 async function initialize(){
  const response=await fetch('/dados.json',{cache:'no-store'});if(!response.ok)throw new Error('Falha ao carregar dados.json');
  const db=await response.json();revision=response.headers.get('ETag');
- for(const [date,rec] of Object.entries(db.registros))days[date]={tags:rec.marcacoes.map(k=>kinds.indexOf(k)),who:rec.envolvidosNaBriga||'Os dois',note:rec.observacao,votes:members.map(id=>rec.votos[id]?{score:rec.votos[id].estrelas,note:rec.votos[id].comentario}:null)};
+  for(const [date,rec] of Object.entries(db.registros))days[date]={tags:rec.marcacoes.map(k=>kinds.indexOf(k)),who:rec.envolvidosNaBriga||'Os dois',note:rec.observacao,votes:members.map(id=>rec.votos[id]?{score:rec.votos[id].estrelas,note:rec.votos[id].comentario}:null)};
+  try{Object.assign(days,JSON.parse(localStorage.getItem(localRecordsKey)||'{}'))}catch{}
  render();
 }
 const done=d=>days[d]?.votes.every(Boolean);
 async function persist(record){
  if(saving)return;saving=true;const selected=day;const data={marcacoes:record.tags.map(i=>kinds[i]),envolvidosNaBriga:record.tags.includes(0)?record.who:null,observacao:record.note,votos:Object.fromEntries(members.map((id,i)=>[id,record.votes[i]?{estrelas:record.votes[i].score,comentario:record.votes[i].note}:null]))};
- try{const response=await fetch('/dados.json',{method:'PUT',headers:{'Content-Type':'application/json','If-Match':revision},body:JSON.stringify({data:selected,registro:data})});if(response.status===412){alert('O arquivo mudou. Recarregue a página para conferir a versão mais recente antes de salvar.');return}if(!response.ok)throw new Error();revision=response.headers.get('ETag');days[selected]=record;render();if(modal.open&&day===selected)overview()}catch{alert('Falha ao gravar dados.json. Verifique se o servidor local está rodando e tente novamente.')}finally{saving=false}
+  try{const response=await fetch('/dados.json',{method:'PUT',headers:{'Content-Type':'application/json','If-Match':revision},body:JSON.stringify({data:selected,registro:data})});if(response.status===412){alert('O arquivo mudou. Recarregue a página para conferir a versão mais recente antes de salvar.');return}if(!response.ok)throw new Error();revision=response.headers.get('ETag');days[selected]=record;render();if(modal.open&&day===selected)overview()}catch{try{const localRecords=JSON.parse(localStorage.getItem(localRecordsKey)||'{}');localRecords[selected]=record;localStorage.setItem(localRecordsKey,JSON.stringify(localRecords));days[selected]=record;render();if(modal.open&&day===selected)overview()}catch{alert('Não foi possível salvar este registro neste navegador.')}}finally{saving=false}
 }
 function trailDates(){const future=Array.from({length:101},(_,i)=>keyFromDate(new Date(localDate.getTime()+i*ms)));return [...new Set([shiftKey(todayKey,-1),...Object.keys(days),...future])].sort()}
 function render(){
