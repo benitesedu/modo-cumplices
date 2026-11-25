@@ -57,13 +57,22 @@ module.exports = async function handler(req, response) {
       await request(`eventos_especiais?id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' });
       return response.status(204).end();
     }
-    if (req.method !== 'POST') return response.status(405).json({ error: 'Método não permitido' });
+    if (req.method !== 'POST' && req.method !== 'PUT') return response.status(405).json({ error: 'Método não permitido' });
     const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     validateEvent(event);
-    const created = await request('eventos_especiais', { method: 'POST', prefer: 'return=representation', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify([{ tipo: event.tipo, participante: event.participante, data_inicio: event.dataInicio, data_fim: event.dataFim, descricao: event.descricao.trim() }]) });
-    const id = created[0].id;
+    const queryId = new URL(req.url, 'http://localhost').searchParams.get('id');
+    let id;
+    if (req.method === 'PUT') {
+      if (!queryId || !/^\d+$/.test(queryId)) return response.status(400).json({ error: 'Evento inválido' });
+      id = queryId;
+      await request(`eventos_especiais?id=eq.${id}`, { method: 'PATCH', prefer: 'return=minimal', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo: event.tipo, participante: event.participante, data_inicio: event.dataInicio, data_fim: event.dataFim, descricao: event.descricao.trim() }) });
+      await request(`eventos_itens?evento_id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' });
+    } else {
+      const created = await request('eventos_especiais', { method: 'POST', prefer: 'return=representation', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify([{ tipo: event.tipo, participante: event.participante, data_inicio: event.dataInicio, data_fim: event.dataFim, descricao: event.descricao.trim() }]) });
+      id = created[0].id;
+    }
     if (event.itens.length) await request('eventos_itens', { method: 'POST', prefer: 'return=minimal', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(event.itens.map(item => ({ evento_id: id, data: item.data, observacao: item.observacao.trim() }))) });
-    return response.status(201).json({ id });
+    return response.status(req.method === 'POST' ? 201 : 200).json({ id });
   } catch (error) {
     console.error(error);
     return response.status(error.message.includes('inválido') || error.message.includes('Período') || error.message.includes('Item') ? 400 : 500).json({ error: error.message });
