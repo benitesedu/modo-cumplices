@@ -14,16 +14,18 @@ const fullDateLabel=key=>dateFromKey(key).toLocaleDateString('pt-BR',{weekday:'l
 const escapeText=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function initialize(){
  const response=await fetch('/dados.json',{cache:'no-store'});if(!response.ok)throw new Error('Falha ao carregar dados.json');
- const source=response.headers.get('X-Data-Source');setDataStatus(source==='supabase'?'Supabase conectado':source==='github-fallback'?'Supabase fora · fallback ativo':'Supabase não configurado · JSON local');
+  const source=response.headers.get('X-Data-Source');setDataStatus(source==='supabase'?'Supabase conectado':source==='github-fallback'?'Supabase fora · fallback ativo':'Supabase não configurado · JSON local');
  const db=await response.json();revision=response.headers.get('ETag');
   for(const [date,rec] of Object.entries(db.registros))days[date]={tags:rec.marcacoes.map(k=>kinds.indexOf(k)),who:rec.envolvidosNaBriga||'Os dois',note:rec.observacao,votes:members.map(id=>rec.votos[id]?{score:rec.votos[id].estrelas,note:rec.votos[id].comentario}:null)};
-  try{Object.assign(days,JSON.parse(localStorage.getItem(localRecordsKey)||'{}'))}catch{}
+  try{const localRecords=JSON.parse(localStorage.getItem(localRecordsKey)||'{}');Object.assign(days,localRecords);if(source==='supabase'&&Object.keys(localRecords).length)await syncLocalRecords(localRecords)}catch{}
  render();
 }
 function setDataStatus(message){const status=el('dataStatus');if(status){status.hidden=false;status.textContent=message;status.dataset.state=message.includes('conectado')?'ok':message.includes('fora')?'warning':'offline'}}
 const done=d=>days[d]?.votes.every(Boolean);
+const toApiRecord=record=>({marcacoes:record.tags.map(i=>kinds[i]),envolvidosNaBriga:record.tags.includes(0)?record.who:null,observacao:record.note,votos:Object.fromEntries(members.map((id,i)=>[id,record.votes[i]?{estrelas:record.votes[i].score,comentario:record.votes[i].note}:null]))});
+async function syncLocalRecords(records){for(const [selected,record] of Object.entries(records)){const response=await fetch('/dados.json',{method:'PUT',headers:{'Content-Type':'application/json','If-Match':revision},body:JSON.stringify({data:selected,registro:toApiRecord(record)})});if(!response.ok)throw new Error('Falha ao sincronizar registros locais');revision=response.headers.get('ETag')}localStorage.removeItem(localRecordsKey)}
 async function persist(record){
- if(saving)return;saving=true;const selected=day;const data={marcacoes:record.tags.map(i=>kinds[i]),envolvidosNaBriga:record.tags.includes(0)?record.who:null,observacao:record.note,votos:Object.fromEntries(members.map((id,i)=>[id,record.votes[i]?{estrelas:record.votes[i].score,comentario:record.votes[i].note}:null]))};
+ if(saving)return;saving=true;const selected=day;const data=toApiRecord(record);
   try{const response=await fetch('/dados.json',{method:'PUT',headers:{'Content-Type':'application/json','If-Match':revision},body:JSON.stringify({data:selected,registro:data})});if(response.status===412){alert('O arquivo mudou. Recarregue a página para conferir a versão mais recente antes de salvar.');return}if(!response.ok)throw new Error();revision=response.headers.get('ETag');days[selected]=record;render();if(modal.open&&day===selected)overview()}catch{try{const localRecords=JSON.parse(localStorage.getItem(localRecordsKey)||'{}');localRecords[selected]=record;localStorage.setItem(localRecordsKey,JSON.stringify(localRecords));days[selected]=record;render();if(modal.open&&day===selected)overview()}catch{alert('Não foi possível salvar este registro neste navegador.')}}finally{saving=false}
 }
 function trailDates(){const future=Array.from({length:101},(_,i)=>keyFromDate(new Date(localDate.getTime()+i*ms)));return [...new Set([shiftKey(todayKey,-1),...Object.keys(days),...future])].sort()}
