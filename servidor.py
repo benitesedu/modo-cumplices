@@ -2,7 +2,6 @@
 import hashlib
 import json
 import os
-import tempfile
 import urllib.error
 import urllib.request
 from datetime import date
@@ -10,7 +9,12 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-DATABASE = ROOT / "dados.json"
+BASE_DATABASE = {
+    "versao": 1,
+    "jogo": "Modo Cúmplice",
+    "tiposDeDia": {"briga": "Teve briga", "feliz": "Dia feliz", "quente": "Dia quente"},
+    "participantes": {"eduardo": {"nome": "Eduardo"}, "jessica": {"nome": "Jéssica"}},
+}
 
 
 def load_env():
@@ -50,7 +54,7 @@ def supabase_request(path, method="GET", payload=None):
 def supabase_database():
     days = supabase_request("dias?select=dia,marcacoes,envolvidos_na_briga,observacao&order=dia.asc")
     votes = supabase_request("votos?select=dia,participante,estrelas,comentario&order=dia.asc")
-    database = json.loads(DATABASE.read_text(encoding="utf-8"))
+    database = dict(BASE_DATABASE)
     database["registros"] = {
         row["dia"]: {
             "marcacoes": row["marcacoes"],
@@ -119,64 +123,43 @@ class App(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
-        if self.path == "/dados.json":
+        if self.path == "/api/dados":
+            if not SUPABASE_URL or not SUPABASE_KEY:
+                return self.reply(503, b'{"error":"Configure o arquivo .env com as credenciais do Supabase"}')
             try:
-                data = supabase_database() if SUPABASE_URL and SUPABASE_KEY else json.loads(DATABASE.read_text(encoding="utf-8"))
+                data = supabase_database()
                 raw = (json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode()
             except (OSError, ValueError, urllib.error.URLError) as error:
                 return self.reply(502, json.dumps({"error": "Falha ao consultar Supabase", "detail": str(error)}).encode())
-            self.reply(200, raw, revision(raw), "supabase" if SUPABASE_URL and SUPABASE_KEY else "local-json")
+            self.reply(200, raw, revision(raw), "supabase")
         else:
             super().do_GET()
 
     def do_PUT(self):
-        if self.path != "/dados.json":
+        if self.path != "/api/dados":
             return self.reply(404)
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            return self.reply(503, b'{"error":"Configure o arquivo .env com as credenciais do Supabase"}')
         try:
-            raw = DATABASE.read_bytes()
-        except OSError:
-            return self.reply(500)
-        if self.headers.get("If-Match") != revision(raw):
-            if SUPABASE_URL and SUPABASE_KEY:
-                try:
-                    current = supabase_database()
-                    current_raw = (json.dumps(current, ensure_ascii=False, indent=2) + "\n").encode()
-                    if self.headers.get("If-Match") != revision(current_raw):
-                        return self.reply(412)
-                    raw = current_raw
-                except (OSError, ValueError, urllib.error.URLError) as error:
-                    return self.reply(502, json.dumps({"error": "Falha ao consultar Supabase", "detail": str(error)}).encode())
-            else:
+            current = supabase_database()
+            current_raw = (json.dumps(current, ensure_ascii=False, indent=2) + "\n").encode()
+            if self.headers.get("If-Match") != revision(current_raw):
                 return self.reply(412)
-        try:
             size = int(self.headers.get("Content-Length", "0"))
             if not 0 < size <= 32000:
                 return self.reply(400)
             change = json.loads(self.rfile.read(size))
             key, record = change["data"], change["registro"]
-            db = json.loads(raw)
-            if date.fromisoformat(key).isoformat() != key or not valid_record(record, db):
+            if date.fromisoformat(key).isoformat() != key or not valid_record(record, current):
                 return self.reply(400)
-            if SUPABASE_URL and SUPABASE_KEY:
-                save_supabase(key, record)
-                current = supabase_database()
-                output = (json.dumps(current, ensure_ascii=False, indent=2) + "\n").encode()
-                return self.reply(200, b"{}", revision(output))
-            db["registros"][key] = record
-            output = (json.dumps(db, ensure_ascii=False, indent=2) + "\n").encode()
+            save_supabase(key, record)
+            updated = supabase_database()
+            output = (json.dumps(updated, ensure_ascii=False, indent=2) + "\n").encode()
+            return self.reply(200, b"{}", revision(output), "supabase")
         except (TypeError, ValueError, KeyError):
             return self.reply(400)
         except (OSError, urllib.error.URLError) as error:
             return self.reply(502, json.dumps({"error": "Falha ao salvar no Supabase", "detail": str(error)}).encode())
-        with tempfile.NamedTemporaryFile(dir=ROOT, delete=False) as temp:
-            temp.write(output)
-            temp.flush()
-            os.fsync(temp.fileno())
-        try:
-            os.replace(temp.name, DATABASE)
-        finally:
-            Path(temp.name).unlink(missing_ok=True)
-        self.reply(200, b"{}", revision(output))
 
 
 if __name__ == "__main__":
