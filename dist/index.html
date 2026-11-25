@@ -20,7 +20,7 @@
   </form>
 </div>
 <div class="scenery" aria-hidden="true"></div>
-<header><div class="players"><div class="pair"><img src="edu.webp" alt=""><img src="jess.webp" alt=""></div>Eduardo &amp; Jéssica</div><span id="dataStatus" class="data-status" hidden></span></header>
+<header><div class="players"><div class="pair"><img src="edu.webp" alt=""><img src="jess.webp" alt=""></div>Eduardo &amp; Jéssica</div></header>
 <main>
   <section class="trail" aria-label="Trilha diária"><div class="trailhead"><div><small id="trailMonth"></small><h2>Nossa trilha</h2></div><div class="trail-controls"><button type="button" onclick="moveCarousel(-1)" aria-label="Dias anteriores">‹</button><button type="button" onclick="focusToday()">Hoje</button><button type="button" onclick="moveCarousel(1)" aria-label="Próximos dias">›</button></div></div><div class="road-scroll" id="roadScroll" tabindex="0" aria-label="Carrossel da trilha"><div id="road"></div></div></section>
   <div class="mission">
@@ -28,7 +28,7 @@
     <aside id="highlights" aria-label="Resumo do registro" aria-live="polite" hidden></aside>
   </div>
   <section class="history" aria-labelledby="historyTitle"><h2 id="historyTitle">Dia a dia</h2><div id="entries"></div></section>
-  <footer>Registros no Supabase</footer>
+  <footer>Registros no Supabase <span id="dataStatus" class="data-status" hidden></span></footer>
 </main>
 <dialog id="modal"><div class="top"><small id="date"></small><button aria-label="Fechar" onclick="modal.close()">×</button></div><div id="form"></div></dialog>
 <script src="app.js?v=11"></script>
