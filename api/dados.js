@@ -77,6 +77,7 @@ module.exports = async function handler(request, response) {
       const current = await getSupabaseData();
       const currentRevision = revision(current.data);
       response.setHeader('ETag', `"${currentRevision}"`);
+      response.setHeader('X-Data-Source', 'supabase');
       if (request.method === 'GET') return response.status(200).json(current.data);
       if (request.method !== 'PUT') return response.status(405).json({ error: 'Método não permitido' });
       const expected = (request.headers['if-match'] || '').replaceAll('"', '');
