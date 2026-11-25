@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/dados.json", "dest": "/dados.json" },
+    { "src": "/(.*\\.(js|css|webp|png|jpg|jpeg|ico|svg))", "dest": "/dist/$1" },
+    { "src": "/(.*)", "dest": "/dist/index.html" }
+  ]
+}

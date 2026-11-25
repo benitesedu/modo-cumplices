@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#120f1c">
+<title>Modo Cúmplice · Nossa trilha</title>
+<link rel="stylesheet" href="style.css?v=10">
+<body>
+<div id="accessGate" class="access-gate">
+  <form class="access-card" onsubmit="unlock(event)">
+    <span class="access-heart" aria-hidden="true">♥</span>
+    <small>ESPAÇO DO CASAL</small>
+    <h1>Modo <i>Cúmplice</i></h1>
+    <p>Digite a senha para entrar na nossa trilha.</p>
+    <label for="accessPassword">Senha de 4 dígitos</label>
+    <input id="accessPassword" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" aria-describedby="accessError" required>
+    <p id="accessError" class="access-error" role="alert"></p>
+    <button class="primary" type="submit">Entrar</button>
+  </form>
+</div>
+<div class="scenery" aria-hidden="true"></div>
+<header><div class="players"><div class="pair"><img src="edu.webp" alt=""><img src="jess.webp" alt=""></div>Eduardo &amp; Jéssica</div></header>
+<main>
+  <div class="mission">
+    <section class="brief"><small id="todayLabel"></small><h1>Modo <i>Cúmplice</i></h1><div class="brief-actions"><div class="streak"><div><b id="count"></b> <span id="streakLabel">dias sem briga</span></div><div id="week" class="week"></div></div><button class="primary launch" onclick="openDay(todayKey)" id="go" hidden>Registrar hoje</button></div></section>
+    <aside id="highlights" aria-label="Resumo do registro" aria-live="polite" hidden></aside>
+  </div>
+  <section class="trail" aria-label="Trilha diária"><div class="trailhead"><div><small id="trailMonth"></small><h2>Nossa trilha</h2></div><div class="trail-controls"><button type="button" onclick="moveCarousel(-1)" aria-label="Dias anteriores">‹</button><button type="button" onclick="focusToday()">Hoje</button><button type="button" onclick="moveCarousel(1)" aria-label="Próximos dias">›</button></div></div><div class="road-scroll" id="roadScroll" tabindex="0" aria-label="Carrossel da trilha"><div id="road"></div></div></section>
+  <section class="history" aria-labelledby="historyTitle"><h2 id="historyTitle">Dia a dia</h2><div id="entries"></div></section>
+  <footer>Registros em dados.json</footer>
+</main>
+<dialog id="modal"><div class="top"><small id="date"></small><button aria-label="Fechar" onclick="modal.close()">×</button></div><div id="form"></div></dialog>
+<script src="app.js?v=10"></script>
+</body>
+</html>

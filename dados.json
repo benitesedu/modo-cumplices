@@ -1,0 +1,38 @@
+{
+  "versao": 1,
+  "jogo": "Modo Cúmplice",
+  "participantes": {
+    "eduardo": {
+      "nome": "Eduardo",
+      "avatar": "edu.webp"
+    },
+    "jessica": {
+      "nome": "Jéssica",
+      "avatar": "jess.webp"
+    }
+  },
+  "tiposDeDia": {
+    "briga": "Teve briga",
+    "feliz": "Dia feliz",
+    "quente": "Dia quente"
+  },
+  "registros": {
+    "2026-11-24": {
+      "marcacoes": [
+        "briga"
+      ],
+      "envolvidosNaBriga": "Eduardo",
+      "observacao": "Sem querer Eduardo causou uma briga por bobeira",
+      "votos": {
+        "eduardo": {
+          "estrelas": 3,
+          "comentario": "Fiquei boa parte do dia chateado e Jessica estava bem comigo, arrependi"
+        },
+        "jessica": {
+          "estrelas": 2,
+          "comentario": "Eduardo brigou comigo, porque falei verdade e ele ficou com raiva de cara virada"
+        }
+      }
+    }
+  }
+}
