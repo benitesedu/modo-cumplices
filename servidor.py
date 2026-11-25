@@ -34,7 +34,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 
-def supabase_request(path, method="GET", payload=None):
+def supabase_request(path, method="GET", payload=None, prefer=None):
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": "Bearer " + SUPABASE_KEY,
@@ -43,7 +43,7 @@ def supabase_request(path, method="GET", payload=None):
     body = None
     if payload is not None:
         headers["Content-Type"] = "application/json"
-        headers["Prefer"] = "return=minimal"
+        headers["Prefer"] = prefer or "return=minimal"
         body = json.dumps(payload, ensure_ascii=False).encode()
     request = urllib.request.Request(SUPABASE_URL + "/rest/v1/" + path, data=body, headers=headers, method=method)
     with urllib.request.urlopen(request, timeout=15) as response:
@@ -88,6 +88,36 @@ def save_supabase(key, record):
         supabase_request("votos", "POST", votes)
 
 
+def supabase_events():
+    events = supabase_request("eventos_especiais?select=id,tipo,participante,data_inicio,data_fim,descricao&order=data_inicio.desc")
+    items = supabase_request("eventos_itens?select=id,evento_id,data,observacao&order=data.asc")
+    return [{
+        "id": event["id"], "tipo": event["tipo"], "participante": event["participante"],
+        "dataInicio": event["data_inicio"], "dataFim": event["data_fim"], "descricao": event["descricao"],
+        "itens": [{"id": item["id"], "data": item["data"], "observacao": item["observacao"]}
+                  for item in items if item["evento_id"] == event["id"]]
+    } for event in events]
+
+
+def save_event(event):
+    start, end = event["dataInicio"], event["dataFim"]
+    if event["tipo"] not in ("Viagem", "Passeio", "Acontecimento") or event["participante"] not in ("Eduardo", "Jéssica", "Ambos"):
+        raise ValueError("Tipo ou participante inválido")
+    if date.fromisoformat(start) > date.fromisoformat(end) or not event["descricao"].strip():
+        raise ValueError("Período ou descrição inválida")
+    for item in event["itens"]:
+        if not item["observacao"].strip() or not date.fromisoformat(start) <= date.fromisoformat(item["data"]) <= date.fromisoformat(end):
+            raise ValueError("Item fora do período ou sem observação")
+    created = supabase_request("eventos_especiais", "POST", [{
+        "tipo": event["tipo"], "participante": event["participante"], "data_inicio": start,
+        "data_fim": end, "descricao": event["descricao"].strip()
+    }], "return=representation")
+    event_id = created[0]["id"]
+    if event["itens"]:
+        supabase_request("eventos_itens", "POST", [{"evento_id": event_id, "data": item["data"], "observacao": item["observacao"].strip()} for item in event["itens"]])
+    return event_id
+
+
 def revision(raw):
     return '"' + hashlib.sha256(raw).hexdigest() + '"'
 
@@ -123,6 +153,14 @@ class App(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
+        if self.path == "/api/eventos":
+            if not SUPABASE_URL or not SUPABASE_KEY:
+                return self.reply(503, b'{"error":"Configure o arquivo .env com as credenciais do Supabase"}')
+            try:
+                body = json.dumps(supabase_events(), ensure_ascii=False).encode()
+                return self.reply(200, body, source="supabase")
+            except (OSError, ValueError, urllib.error.URLError) as error:
+                return self.reply(502, json.dumps({"error": "Falha ao consultar eventos", "detail": str(error)}).encode())
         if self.path == "/api/dados":
             if not SUPABASE_URL or not SUPABASE_KEY:
                 return self.reply(503, b'{"error":"Configure o arquivo .env com as credenciais do Supabase"}')
@@ -160,6 +198,21 @@ class App(SimpleHTTPRequestHandler):
             return self.reply(400)
         except (OSError, urllib.error.URLError) as error:
             return self.reply(502, json.dumps({"error": "Falha ao salvar no Supabase", "detail": str(error)}).encode())
+
+    def do_POST(self):
+        if self.path != "/api/eventos":
+            return self.reply(404)
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            return self.reply(503, b'{"error":"Configure o arquivo .env com as credenciais do Supabase"}')
+        try:
+            size = int(self.headers.get("Content-Length", "0"))
+            event = json.loads(self.rfile.read(size))
+            event_id = save_event(event)
+            return self.reply(201, json.dumps({"id": event_id}).encode(), source="supabase")
+        except (TypeError, ValueError, KeyError) as error:
+            return self.reply(400, json.dumps({"error": str(error)}).encode())
+        except (OSError, urllib.error.URLError) as error:
+            return self.reply(502, json.dumps({"error": "Falha ao salvar evento", "detail": str(error)}).encode())
 
 
 if __name__ == "__main__":

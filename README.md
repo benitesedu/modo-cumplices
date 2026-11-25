@@ -12,6 +12,7 @@ No macOS ou Linux, use `python3 servidor.py`. Abra http://127.0.0.1:8000 no nave
 
 - `dist/index.html`, `dist/style.css` e `dist/app.js` contêm a interface do protótipo. As três imagens WebP estão na mesma pasta.
 - `supabase/schema.sql` cria as tabelas `dias` e `votos`, com as regras de validação e RLS ativado. Execute o script no SQL Editor do Supabase.
+- O mesmo script cria `eventos_especiais` e `eventos_itens`, incluindo a validação de que cada observação fica dentro do período do evento.
 - `servidor.py` serve a interface local e usa exclusivamente o Supabase para ler e gravar registros. Crie um `.env` com `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` antes de executar.
 - `.openai/hosting.json` é a configuração original da hospedagem estática. Para publicar a versão com escrita em arquivo seria necessário um ambiente que execute o servidor com disco persistente.
 - `vercel.json` encaminha a interface, os assets e a API para a Vercel. Configure `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` nas variáveis do projeto.

@@ -5,7 +5,7 @@
 <meta name="theme-color" content="#120f1c">
 <title>Modo Cúmplice · Nossa trilha</title>
 <link rel="icon" href="/favicon.png" type="image/png">
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=11">
 <body>
 <div id="accessGate" class="access-gate">
   <form class="access-card" onsubmit="unlock(event)">
@@ -27,10 +27,10 @@
     <section class="brief"><small id="todayLabel"></small><h1>Modo <i>Cúmplice</i></h1><div class="brief-actions"><div class="streak"><div><b id="count"></b> <span id="streakLabel">dias sem briga</span></div><div id="week" class="week"></div></div><button class="primary launch" onclick="openDay(todayKey)" id="go" hidden>Registrar hoje</button></div></section>
     <aside id="highlights" aria-label="Resumo do registro" aria-live="polite" hidden></aside>
   </div>
-  <section class="history" aria-labelledby="historyTitle"><h2 id="historyTitle">Dia a dia</h2><div id="entries"></div></section>
+  <section class="history" aria-labelledby="historyTitle"><div class="history-tabs" role="tablist" aria-label="Registros"><button id="dailyTab" class="active" role="tab" aria-selected="true" onclick="showHistory('daily')">Dia a dia</button><button id="eventsTab" role="tab" aria-selected="false" onclick="showHistory('events')">Eventos especiais</button></div><div id="dailyPanel" role="tabpanel"><h2 id="historyTitle">Dia a dia</h2><div id="entries"></div></div><div id="eventsPanel" role="tabpanel" hidden><div class="events-heading"><div><small>MEMÓRIAS IMPORTANTES</small><h2>Eventos especiais</h2></div><button class="primary" onclick="openEventForm()">+ Novo evento</button></div><div id="events"></div></div></section>
   <footer>Registros no Supabase <span id="dataStatus" class="data-status" hidden></span></footer>
 </main>
 <dialog id="modal"><div class="top"><small id="date"></small><button aria-label="Fechar" onclick="modal.close()">×</button></div><div id="form"></div></dialog>
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
